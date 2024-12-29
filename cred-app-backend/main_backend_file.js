@@ -4,10 +4,21 @@ require('dotenv').config(); // Load environment variables
 
 const app = express();
 
-// Connect to the database
+// Debugging logs
+console.log('Connecting to MongoDB...');
 connectDB();
+console.log('MongoDB connection initiated.');
 
-// Define a basic route
+// Middleware to parse JSON
+app.use(express.json());
+
+// Import and register routes
+const authRoutes = require('./routes/authRoutes'); // Authentication routes
+console.log('Authentication routes loaded.');
+app.use('/api/auth', authRoutes);
+console.log('Authentication routes registered.');
+
+// Basic root route (optional, for testing)
 app.get('/', (req, res) => {
     res.send('Server is running and database connected!');
 });

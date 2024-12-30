@@ -2,7 +2,7 @@ const express = require('express');
 const User = require('../models/User'); // Import the User model
 const jwt = require('jsonwebtoken'); // Import JSON Web Token for authentication
 const router = express.Router();
-
+const bcrypt = require('bcrypt');
 
 // Register a new user
 router.post('/register', async (req, res) => {
@@ -74,5 +74,41 @@ router.post('/register', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
+// Login route
+router.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        // Find the user by email
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+
+        // Check if the password is correct
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+
+        // Generate a JWT token
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+        // Respond with user details and token
+        res.status(200).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            token,
+        });
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 
 module.exports = router;

@@ -1,8 +1,15 @@
 const express = require('express');
 const User = require('../models/User'); // Import the User model
 const jwt = require('jsonwebtoken'); // Import JSON Web Token for authentication
-const router = express.Router();
 const bcrypt = require('bcrypt');
+const { protect } = require('../middleware/authMiddleware');
+
+const router = express.Router();
+
+// Profile route (protected)
+router.get('/profile', protect, (req, res) => {
+    res.status(200).json({ message: `Welcome, user with ID: ${req.user}` });
+});
 
 // Register a new user
 router.post('/register', async (req, res) => {
@@ -17,46 +24,12 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // Create a new user
+        // Create a new user with a hashed password
+        const hashedPassword = await bcrypt.hash(password, 10);
         const user = await User.create({
             name,
             email,
-            password,
-        });
-
-        // Generate a JWT token for the user
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-
-        // Return the user details and token
-        res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            token,
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// Login a user
-router.post('/register', async (req, res) => {
-    console.log('Request received at /register'); // Debug log
-    const { name, email, password } = req.body;
-
-    try {
-        // Check if the user already exists
-        const userExists = await User.findOne({ email });
-
-        if (userExists) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
-
-        // Create a new user
-        const user = await User.create({
-            name,
-            email,
-            password,
+            password: hashedPassword,
         });
 
         // Generate a JWT token for the user
@@ -75,8 +48,9 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login route
+// Login a user
 router.post('/login', async (req, res) => {
+    console.log('Request received at /login'); // Debug log
     const { email, password } = req.body;
 
     try {
@@ -110,5 +84,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
+console.log('User model loaded:', User);
 
 module.exports = router;
